@@ -2,12 +2,16 @@ package blockchain
 
 import (
 	"fmt"
+	"os"
+	"runtime"
 
 	"github.com/dgraph-io/badger"
 )
 
 const (
-	dbPath = "/tmp/badger"
+	dbPath      = "./tmp/blocks"
+	dbFile      = "./tmp/blocks/MANIFEST"
+	genesisData = "It is easier to fool people than to convince them that they have been fooled"
 )
 
 //BlockChain is chain of blocks, connected with hash, such that te following block
@@ -23,11 +27,24 @@ type BlockChainIterator struct {
 	Database    *badger.DB
 }
 
+//DBexists is a helper function (InitBlockchain) to fetermine whether db is created
+func DBexists() bool {
+	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
 //InitBlockChain creates an instance of our blockchain
-func InitBlockChain() *BlockChain {
+func InitBlockChain(address string) *BlockChain {
 	var lastHash []byte
 
-	opts := badger.DefaultOptions("/tmp/badger")
+	if DBexists() {
+		fmt.Println("Blockchain already exists")
+		runtime.Goexit()
+	}
+
+	opts := badger.DefaultOptions("./tmp/blocks")
 	opts.Dir = dbPath
 	opts.ValueDir = dbPath
 
@@ -35,35 +52,57 @@ func InitBlockChain() *BlockChain {
 	Handle(err)
 
 	err = db.Update(func(txn *badger.Txn) error {
-		if _, err := txn.Get([]byte("lh")); err == badger.ErrKeyNotFound {
-			fmt.Println("No existing blockchain")
-			genesis := Genesis()
-			fmt.Println("Genesis proved")
-			err = txn.Set(genesis.Hash, genesis.Serialize())
-			Handle(err)
-			err = txn.Set([]byte("lh"), genesis.Hash)
+		cbtx := CoinbaseTx(address, genesisData)
+		genesis := Genesis(cbtx)
+		fmt.Println("Genesis created")
 
-			lastHash = genesis.Hash
+		err = txn.Set(genesis.Hash, genesis.Serialize())
+		Handle(err)
 
-			return err
+		err = txn.Set([]byte("lh"), genesis.Hash)
 
-		}
+		lastHash = genesis.Hash
 
-		item, err := txn.Get([]byte("lh"))
-		err = item.Value(func(val []byte) error {
-			lastHash = append([]byte{}, val...)
-			return nil
-
-		})
 		return err
 
 	})
-
 	Handle(err)
 
 	blockchain := BlockChain{lastHash, db}
 	return &blockchain
 
+}
+
+func ContinueBlockChain(address string) *BlockChain {
+	if DBexists() == false {
+		fmt.Println("No existing blockchain found, create one")
+		runtime.Goexit()
+	}
+
+	var lastHash []byte
+
+	opts := badger.DefaultOptions("./tmp/blocks")
+	opts.Dir = dbPath
+	opts.ValueDir = dbPath
+
+	db, err := badger.Open(opts)
+	Handle(err)
+
+	err = db.Update(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte("lh"))
+		Handle(err)
+		err = item.Value(func(val []byte) error {
+			lastHash = append([]byte{}, val...)
+			return nil
+		})
+
+		return err
+	})
+	Handle(err)
+
+	chain := BlockChain{lastHash, db}
+
+	return &chain
 }
 
 //AddBlock is a method to add new block to the chain
@@ -127,4 +166,22 @@ func (iter *BlockChainIterator) Next() *Block {
 	iter.CurrentHash = block.PrevHash
 
 	return block
+}
+
+func (chain *BlockChain) FindUnspentTransactions(address string) []Transaction {
+	var unspentTxs []Transaction
+
+	spentTXOs := make(map[string][]int)
+
+	iter := chain.Iterator()
+
+	for {
+		block := iter.Next()
+
+		if len(block.PrevHash) == 0 {
+			break
+		}
+	}
+	return unspentTxs
+
 }

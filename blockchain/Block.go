@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/gob"
 	"log"
 )
@@ -9,16 +10,29 @@ import (
 //Block is a basic bulding block of our blockchain, can cointain variety of data
 //the most important is Hash, which will store the result of PoW function
 type Block struct {
-	Hash     []byte
-	Data     []byte
-	PrevHash []byte
-	Nonce    int
+	Hash         []byte
+	Transactions []*Transaction
+	PrevHash     []byte
+	Nonce        int
+}
+
+//HashTransactions concats all transactions in one array and hashes this array
+func (b *Block) HashTransactions() []byte {
+	var txHashes [][]byte
+	var txHash [32]byte
+
+	for _, tx := range b.Transactions {
+		txHashes = append(txHashes, tx.ID)
+	}
+	txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
+
+	return txHash[:]
 }
 
 //CreateBlock is a wrapper to create a Block
 // it contains PoW algorithm inside
-func CreateBlock(data string, prevHash []byte) *Block {
-	block := &Block{[]byte{}, []byte(data), prevHash, 0}
+func CreateBlock(txs []*Transaction, prevHash []byte) *Block {
+	block := &Block{[]byte{}, txs, prevHash, 0}
 	pow := NewProof(block)
 	nonce, hash := pow.Run()
 
@@ -28,8 +42,8 @@ func CreateBlock(data string, prevHash []byte) *Block {
 }
 
 //Genesis the first block is special ^^
-func Genesis() *Block {
-	return CreateBlock("It is easier to fool people than to convince them that they have been fooled", []byte{})
+func Genesis(coinbase *Transaction) *Block {
+	return CreateBlock([]*Transaction{coinbase}, []byte{})
 }
 
 //Serialize converts block data to bytes, do it can be stored in key-value DB (BadgerDB)
