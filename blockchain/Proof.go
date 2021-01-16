@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
 	"log"
 	"math"
 	"math/big"
@@ -77,6 +78,8 @@ func (pow *ProofOfWork) Run() (int, []byte) {
 		// save hash to IntHash
 		intHash.SetBytes(hash[:])
 
+		fmt.Printf("\r%x", hash)
+
 		//if we found the hash smaller than the target, it means
 		// that it contains enough 0's at the beginning
 		if intHash.Cmp(pow.Target) == -1 {
@@ -85,6 +88,7 @@ func (pow *ProofOfWork) Run() (int, []byte) {
 			nonce++
 		}
 	} // execute until you find "perfect and lovely" nonce
+	fmt.Println()
 	return nonce, hash[:]
 }
 

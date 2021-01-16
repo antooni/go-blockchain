@@ -1,5 +1,11 @@
 package blockchain
 
+import (
+	"bytes"
+	"encoding/gob"
+	"log"
+)
+
 //Block is a basic bulding block of our blockchain, can cointain variety of data
 //the most important is Hash, which will store the result of PoW function
 type Block struct {
@@ -7,19 +13,6 @@ type Block struct {
 	Data     []byte
 	PrevHash []byte
 	Nonce    int
-}
-
-//BlockChain is chain of blocks, connected with hash, such that te following block
-// contains the previous block's data
-type BlockChain struct {
-	Blocks []*Block
-}
-
-//AddBlock is a method to add new block to the chain
-func (chain *BlockChain) AddBlock(data string) {
-	prevBlock := chain.Blocks[len(chain.Blocks)-1]
-	new := CreateBlock(data, prevBlock.Hash)
-	chain.Blocks = append(chain.Blocks, new)
 }
 
 //CreateBlock is a wrapper to create a Block
@@ -39,7 +32,34 @@ func Genesis() *Block {
 	return CreateBlock("It is easier to fool people than to convince them that they have been fooled", []byte{})
 }
 
-//InitBlockChain creates an instance of our blockchain
-func InitBlockChain() *BlockChain {
-	return &BlockChain{[]*Block{Genesis()}}
+//Serialize converts block data to bytes, do it can be stored in key-value DB (BadgerDB)
+func (b *Block) Serialize() []byte {
+	var res bytes.Buffer
+	encoder := gob.NewEncoder(&res)
+
+	err := encoder.Encode(b)
+
+	Handle(err)
+
+	return res.Bytes()
+}
+
+//Deserialize converts bytes to more "consumable" data type Block
+func Deserialize(data []byte) *Block {
+	var block Block
+
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+
+	err := decoder.Decode(&block)
+
+	Handle(err)
+
+	return &block
+}
+
+//Handle is a helper to process errors
+func Handle(err error) {
+	if err != nil {
+		log.Panic(err)
+	}
 }
