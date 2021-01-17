@@ -45,9 +45,7 @@ func InitBlockChain(address string) *BlockChain {
 		runtime.Goexit()
 	}
 
-	opts := badger.DefaultOptions("./tmp/blocks")
-	opts.Dir = dbPath
-	opts.ValueDir = dbPath
+	opts := badger.DefaultOptions(dbPath)
 
 	db, err := badger.Open(opts)
 	Handle(err)
@@ -74,6 +72,7 @@ func InitBlockChain(address string) *BlockChain {
 
 }
 
+//ContinueBlockChain is executed when the database already exist, we append blockchain
 func ContinueBlockChain(address string) *BlockChain {
 	if DBexists() == false {
 		fmt.Println("No existing blockchain found, create one")
@@ -169,6 +168,7 @@ func (iter *BlockChainIterator) Next() *Block {
 	return block
 }
 
+//FindUnspentTransactions returns an array of unspent transactions
 func (chain *BlockChain) FindUnspentTransactions(address string) []Transaction {
 	var unspentTxs []Transaction
 
@@ -231,8 +231,6 @@ func (chain *BlockChain) FindSpendableOutputs(address string, amount int) (int, 
 	unspentOuts := make(map[string][]int)
 	unspentTxs := chain.FindUnspentTransactions(address)
 	accumulated := 0
-
-	return accumulated, unspentOuts
 
 Work:
 	for _, tx := range unspentTxs {
