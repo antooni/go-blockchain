@@ -11,7 +11,7 @@ import (
 	"github.com/antooni/go-blockchain/blockchain"
 )
 
-type CommandLine struct{}
+type CommandLine struct{} //idea for later : use cobra and create terminal CLI
 
 func (cli *CommandLine) printUsage() {
 	fmt.Println("Usage:")

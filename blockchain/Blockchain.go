@@ -169,20 +169,31 @@ func (iter *BlockChainIterator) Next() *Block {
 }
 
 //FindUnspentTransactions returns an array of unspent transactions
+// find transactions which are assigned to an address
+// unspent transactions are transactions that have outputs which are not referenced by other inputs
+// if outputs have not been spent it means these coins are owned by the user
+// so counting unspent outputs will tell us have many coins does user own
 func (chain *BlockChain) FindUnspentTransactions(address string) []Transaction {
 	var unspentTxs []Transaction
 
+	// map = {txID: indexesOfSpendOutputs}
 	spentTXOs := make(map[string][]int)
 
 	iter := chain.Iterator()
 
 	for {
+		//iterate over every block
 		block := iter.Next()
 
+		// iterate over every transaction inside a block
 		for _, tx := range block.Transactions {
 			txID := hex.EncodeToString(tx.ID)
 
+			// we start from outputs because we iterate backward on our blocks
 		Outputs:
+			//iterate over the outputs inside a transaction
+			// outIdx - index inside array of ints(values)
+			// out - value
 			for outIdx, out := range tx.Outputs {
 				if spentTXOs[txID] != nil {
 					for _, spentOut := range spentTXOs[txID] {
@@ -190,7 +201,7 @@ func (chain *BlockChain) FindUnspentTransactions(address string) []Transaction {
 							continue Outputs
 						}
 					}
-				}
+				} //if it went through this if it means that the transaction is not yet spent
 				if out.CanBeUnlocked(address) {
 					unspentTxs = append(unspentTxs, *tx)
 				}
@@ -204,7 +215,7 @@ func (chain *BlockChain) FindUnspentTransactions(address string) []Transaction {
 				}
 			}
 		}
-
+		//break out of the loop if u find genesis
 		if len(block.PrevHash) == 0 {
 			break
 		}
