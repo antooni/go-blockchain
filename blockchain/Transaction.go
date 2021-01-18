@@ -9,27 +9,6 @@ import (
 	"log"
 )
 
-//Transaction is a basic data structure used inside a block
-// it allows validating transfers of coins
-type Transaction struct {
-	ID      []byte
-	Inputs  []TxInput
-	Outputs []TxOutput
-}
-
-//TxOutput is like a receipt, how much and to whom
-type TxOutput struct {
-	Value  int
-	PubKey string
-}
-
-//TxInput is required to create an output, we cannot spend money we dont have
-type TxInput struct {
-	ID  []byte
-	Out int
-	Sig string
-}
-
 //SetID calculates the hash of a transaction and sets it as an ID
 func (tx *Transaction) SetID() {
 	var encoded bytes.Buffer
@@ -93,14 +72,4 @@ func NewTransaction(from, to string, amount int, chain *BlockChain) *Transaction
 //IsCoinbase is a helper function to determine wether transaction is a coinbase-tx
 func (tx *Transaction) IsCoinbase() bool {
 	return len(tx.Inputs) == 1 && len(tx.Inputs[0].ID) == 0 && tx.Inputs[0].Out == -1
-}
-
-//CanUnlock test the input
-func (in *TxInput) CanUnlock(data string) bool {
-	return in.Sig == data
-}
-
-//CanBeUnlocked tests the output
-func (out *TxOutput) CanBeUnlocked(data string) bool {
-	return out.PubKey == data
 }
