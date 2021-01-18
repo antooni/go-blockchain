@@ -9,8 +9,10 @@ import (
 	"strconv"
 
 	"github.com/antooni/go-blockchain/blockchain"
+	"github.com/antooni/go-blockchain/wallet"
 )
 
+//CommandLine is and cli object
 type CommandLine struct{} //idea for later : use cobra and create terminal CLI
 
 func (cli *CommandLine) printUsage() {
@@ -19,6 +21,8 @@ func (cli *CommandLine) printUsage() {
 	fmt.Println(" createblockchain -address ADDRESS creates a blockchain and sends genesis reward to address")
 	fmt.Println(" printchain - Prints the blocks in the chain")
 	fmt.Println(" send -from FROM -to TO -amount AMOUNT - Send amount of coins")
+	fmt.Println(" createwallet -  creates new wallet")
+	fmt.Println(" listaddresses  -  shows the list of addresses in your wallet file")
 }
 
 func (cli *CommandLine) validateArgs() {
@@ -26,6 +30,24 @@ func (cli *CommandLine) validateArgs() {
 		cli.printUsage()
 		runtime.Goexit()
 	}
+}
+
+func (cli *CommandLine) listAddresses() {
+	wallets, _ := wallet.CreateWallets()
+	addresses := wallets.GetAllAddresses()
+
+	for _, address := range addresses {
+		fmt.Println(address)
+	}
+}
+
+func (cli *CommandLine) createWallet() {
+	wallets, _ := wallet.CreateWallets()
+	address := wallets.AddWallet()
+
+	wallets.SaveFile()
+
+	fmt.Printf("New address is: %s\n", address)
 }
 
 func (cli *CommandLine) printChain() {
@@ -77,6 +99,7 @@ func (cli *CommandLine) send(from, to string, amount int) {
 	fmt.Println("Success!")
 }
 
+//Run is a wrapper for cli functionality
 func (cli *CommandLine) Run() {
 	cli.validateArgs()
 
@@ -84,6 +107,8 @@ func (cli *CommandLine) Run() {
 	createBlockchainCmd := flag.NewFlagSet("createblockchain", flag.ExitOnError)
 	sendCmd := flag.NewFlagSet("send", flag.ExitOnError)
 	printChainCmd := flag.NewFlagSet("printchain", flag.ExitOnError)
+	createWalletCmd := flag.NewFlagSet("createwallet", flag.ExitOnError)
+	listAddressesCmd := flag.NewFlagSet("listaddresses", flag.ExitOnError)
 
 	getBalanceAddress := getBalanceCmd.String("address", "", "The address to get balance for")
 	createBlockchainAddress := createBlockchainCmd.String("address", "", "The address to send genesis block reward to")
@@ -109,6 +134,16 @@ func (cli *CommandLine) Run() {
 		}
 	case "send":
 		err := sendCmd.Parse(os.Args[2:])
+		if err != nil {
+			log.Panic(err)
+		}
+	case "createwallet":
+		err := createWalletCmd.Parse(os.Args[2:])
+		if err != nil {
+			log.Panic(err)
+		}
+	case "listaddresses":
+		err := listAddressesCmd.Parse(os.Args[2:])
 		if err != nil {
 			log.Panic(err)
 		}
@@ -145,4 +180,13 @@ func (cli *CommandLine) Run() {
 
 		cli.send(*sendFrom, *sendTo, *sendAmount)
 	}
+
+	if createWalletCmd.Parsed() {
+		cli.createWallet()
+	}
+
+	if listAddressesCmd.Parsed() {
+		cli.listAddresses()
+	}
+
 }

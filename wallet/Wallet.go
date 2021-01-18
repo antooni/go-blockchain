@@ -5,7 +5,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
-	"fmt"
 	"log"
 
 	"golang.org/x/crypto/ripemd160"
@@ -16,11 +15,13 @@ const (
 	version        = byte(0x00)
 )
 
+//Wallet is an object to easily consume key pair
 type Wallet struct {
 	PrivateKey ecdsa.PrivateKey
 	PublicKey  []byte
 }
 
+//Address is a wallet method, responsible for generating an address(string)
 func (w Wallet) Address() []byte {
 	pubHash := PublicKeyHash(w.PublicKey)
 
@@ -30,13 +31,10 @@ func (w Wallet) Address() []byte {
 	fullHash := append(versionedHash, checksum...)
 	address := Base58Encode(fullHash)
 
-	fmt.Printf("Public Key : %x\n", w.PublicKey)
-	fmt.Printf("Public Key Hashed: %x\n", pubHash)
-	fmt.Printf("Address : %s\n", address)
-
 	return address
 }
 
+//MakeWallet is a wrapper/constructor for a new Wallet
 func MakeWallet() *Wallet {
 	private, public := NewKeyPair()
 	wallet := Wallet{private, public}
@@ -44,6 +42,7 @@ func MakeWallet() *Wallet {
 	return &wallet
 }
 
+//NewKeyPair is responsible for generating asym. keys and returning them
 func NewKeyPair() (ecdsa.PrivateKey, []byte) {
 	curve := elliptic.P256()
 
@@ -57,6 +56,7 @@ func NewKeyPair() (ecdsa.PrivateKey, []byte) {
 	return *private, pub
 }
 
+//PublicKeyHash returns pubkey hashed by ripemd160
 func PublicKeyHash(pubKey []byte) []byte {
 	pubHash := sha256.Sum256(pubKey)
 
@@ -72,6 +72,7 @@ func PublicKeyHash(pubKey []byte) []byte {
 	return publicRipMD
 }
 
+//Checksum is calculated to check integrity of an address
 func Checksum(payload []byte) []byte {
 	firstHash := sha256.Sum256(payload)
 	secondHash := sha256.Sum256(firstHash[:])
